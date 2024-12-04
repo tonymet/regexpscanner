@@ -1,11 +1,8 @@
-package main
+package regexpscanner
 
 import (
 	"bufio"
-	"flag"
-	"fmt"
 	"io"
-	"os"
 	"regexp"
 )
 
@@ -25,34 +22,13 @@ func MakeSplitter(re *regexp.Regexp) func([]byte, bool) (int, []byte, error) {
 
 func MakeScanner(in io.Reader, re *regexp.Regexp) *bufio.Scanner {
 	scanner := bufio.NewScanner(in)
-	scanner.Split(MakeSplitter(patternRE))
+	scanner.Split(MakeSplitter(re))
 	return scanner
 }
 
-func Read(in io.Reader) {
-	ProcessTokens(in, patternRE, func(text string) {
-		fmt.Println(text)
-	})
-}
-
 func ProcessTokens(in io.Reader, re *regexp.Regexp, handler func(string)) {
-	scanner := MakeScanner(in, patternRE)
+	scanner := MakeScanner(in, re)
 	for scanner.Scan() {
 		handler(scanner.Text())
 	}
-}
-
-var (
-	pattern   string
-	patternRE *regexp.Regexp
-)
-
-func init() {
-	flag.StringVar(&pattern, "pattern", "\\w+", "regex pattern for testing")
-}
-
-func main() {
-	flag.Parse()
-	patternRE = regexp.MustCompile(pattern)
-	Read(os.Stdin)
 }
