@@ -1,7 +1,8 @@
 // ©️ 2024 Anthony Metzidis
 /*
-regexpscanner -- stream-based scanner that scans io.Reader and extracts tokens
-matching a regular expression.
+regexpscanner -- stream-based scanner and regex-based tokenizer in one.
+
+scans io.Reader streams and returns matching tokens
 */
 package regexpscanner
 
@@ -12,7 +13,8 @@ import (
 )
 
 // MakeSplitter(re) creates a splitter to be passed to scanners.Split()
-// the re will be used to tokenize input passed to the scanner
+// the re will be used to tokenize input passed to the scanner.
+//
 // splitters can be wrapped with more complicated splitters for further processing
 // see bufio.Scanner for example splitter-wrappers
 func MakeSplitter(re *regexp.Regexp) func([]byte, bool) (int, []byte, error) {
@@ -30,6 +32,7 @@ func MakeSplitter(re *regexp.Regexp) func([]byte, bool) (int, []byte, error) {
 }
 
 // MakeScanner creates a scanner you can call scanner.Scan() and scanner.Text() with.
+//
 // Calling scanner.Scan() && scanner.Text() will return the latest token matching the regex in the stream.
 func MakeScanner(in io.Reader, re *regexp.Regexp) *bufio.Scanner {
 	scanner := bufio.NewScanner(in)
