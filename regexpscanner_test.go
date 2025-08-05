@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"testing"
 
 	rs "github.com/tonymet/regexpscanner"
 )
@@ -60,4 +61,19 @@ func ExampleMakeScanner() {
 	// </p>
 	// </body>
 	// </html>
+}
+
+func BenchmarkMakeSplitter(b *testing.B) {
+	// The testing framework will automatically adjust b.N until the benchmark
+	// runs for a sufficient amount of time to get stable results.
+	// All setup code should go *before* the loop.
+	splitter := rs.MakeSplitter(regexp.MustCompile(`</?[a-z]+>`))
+	for i := 0; i < b.N; i++ {
+		scanner := bufio.NewScanner(strings.NewReader("<html><body><p>Welcome to My Website</p></body></html>"))
+		// be sure to call Split()
+		scanner.Split(splitter)
+		for scanner.Scan() {
+			_ = scanner.Text()
+		}
+	}
 }
