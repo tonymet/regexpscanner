@@ -77,3 +77,52 @@ func BenchmarkMakeSplitter(b *testing.B) {
 		}
 	}
 }
+
+func TestSplitterBoundary(t *testing.T) {
+	re := regexp.MustCompile(`a+`)
+
+	// "aaaaaa" with a small buffer will test the boundary logic.
+	input := "aaaaaa"
+	reader := strings.NewReader(input)
+	scanner := bufio.NewScanner(reader)
+
+	// Start with a buffer of 3 (smaller than the final match)
+	buf := make([]byte, 3)
+	scanner.Buffer(buf, 1024)
+	scanner.Split(rs.MakeSplitter(re))
+
+	var matches []string
+	for scanner.Scan() {
+		matches = append(matches, scanner.Text())
+	}
+
+	if err := scanner.Err(); err != nil {
+		t.Fatalf("scanner error: %v", err)
+	}
+
+	if len(matches) != 1 || matches[0] != "aaaaaa" {
+		t.Errorf("Expected 1 match 'aaaaaa', got %v", matches)
+	}
+}
+
+func TestSplitterMixed(t *testing.T) {
+	// Tests when a match is preceded by non-matching junk
+	re := regexp.MustCompile(`a+`)
+	input := "---aaaaaa"
+	reader := strings.NewReader(input)
+	scanner := bufio.NewScanner(reader)
+
+	// Buffer of 6 (will contain "---aaa" and then advance past "---")
+	buf := make([]byte, 6)
+	scanner.Buffer(buf, 1024)
+	scanner.Split(rs.MakeSplitter(re))
+
+	var matches []string
+	for scanner.Scan() {
+		matches = append(matches, scanner.Text())
+	}
+
+	if len(matches) != 1 || matches[0] != "aaaaaa" {
+		t.Errorf("Expected 1 match 'aaaaaa', got %v", matches)
+	}
+}

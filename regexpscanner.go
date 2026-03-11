@@ -27,6 +27,18 @@ func MakeSplitter(re *regexp.Regexp) func([]byte, bool) (int, []byte, error) {
 			}
 			return 0, nil, bufio.ErrFinalToken
 		}
+
+		// If hit the buffer boundary and we're not at EOF, we may have an incomplete match.
+		// Signal to bufio.Scanner that we need more data.
+		if !atEOF && loc[1] == len(data) {
+			// Optimization: if the match doesn't start at index 0, advance past early "junk"
+			// to free up buffer space for the rest of the match.
+			if loc[0] > 0 {
+				return loc[0], nil, nil
+			}
+			return 0, nil, nil
+		}
+
 		return loc[1], data[loc[0]:loc[1]], nil
 	}
 }
