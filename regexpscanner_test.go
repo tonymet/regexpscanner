@@ -126,3 +126,55 @@ func TestSplitterMixed(t *testing.T) {
 		t.Errorf("Expected 1 match 'aaaaaa', got %v", matches)
 	}
 }
+
+func BenchmarkScannerEfficiency(b *testing.B) {
+	// 1. Prepare a "Simple Document"
+	content := strings.Repeat("log: info message here\nlog: error something broke\n", 1000)
+	re := regexp.MustCompile(`log: [a-z]+`)
+
+	b.ResetTimer()
+	b.ReportAllocs()                // Tracks memory overhead
+	b.SetBytes(int64(len(content))) // Reports MB/s
+
+	for i := 0; i < b.N; i++ {
+		var callCount int
+		// Wrap the splitter to count invocations
+		rawSplitter := rs.MakeSplitter(re)
+		countedSplitter := func(data []byte, atEOF bool) (int, []byte, error) {
+			callCount++
+			return rawSplitter(data, atEOF)
+		}
+
+		scanner := bufio.NewScanner(strings.NewReader(content))
+		scanner.Split(countedSplitter)
+
+		var matchCount int
+		for scanner.Scan() {
+			matchCount++
+			_ = scanner.Text()
+		}
+
+		// This allows you to see the "Efficiency Ratio"
+		// (Calls to Splitter per Matches Found)
+		if i == 0 {
+			b.Logf("Matches: %d, Splitter Invocations: %d (%.2f calls/match)",
+				matchCount, callCount, float64(callCount)/float64(matchCount))
+		}
+	}
+}
+
+func BenchmarkScannerThroughput(b *testing.B) {
+	content := strings.Repeat("a", 1024*1024) // 1MB of 'a's
+	re := regexp.MustCompile(`a+`)
+
+	b.ResetTimer()
+	b.ReportAllocs()
+	b.SetBytes(int64(len(content)))
+
+	for i := 0; i < b.N; i++ {
+		scanner := rs.MakeScanner(strings.NewReader(content), re)
+		for scanner.Scan() {
+			_ = scanner.Bytes()
+		}
+	}
+}
