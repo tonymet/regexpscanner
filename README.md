@@ -2,6 +2,10 @@
 
 # regexpscanner
 
+[![Go Reference](https://pkg.go.dev/badge/github.com/tonymet/regexpscanner.svg)](https://pkg.go.dev/github.com/tonymet/regexpscanner)
+[![Go Test](https://github.com/tonymet/regexpscanner/actions/workflows/test.yml/badge.svg)](https://github.com/tonymet/regexpscanner/actions/workflows/test.yml)
+[![Go Report Card](https://goreportcard.com/badge/github.com/tonymet/regexpscanner)](https://goreportcard.com/report/github.com/tonymet/regexpscanner)
+
 ```go
 import "github.com/tonymet/regexpscanner"
 ```
