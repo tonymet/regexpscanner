@@ -2,6 +2,7 @@ package regexpscanner_test
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"regexp"
 	"strings"
@@ -130,7 +131,7 @@ func TestSplitterMixed(t *testing.T) {
 func BenchmarkScannerEfficiency(b *testing.B) {
 	// 1. Prepare a "Simple Document"
 	content := strings.Repeat("log: info message here\nlog: error something broke\n", 1000)
-	re := regexp.MustCompile(`log: [a-z]+`)
+	re := regexp.MustCompile(`log: [[:alpha:]]+`)
 
 	b.ResetTimer()
 	b.ReportAllocs()                // Tracks memory overhead
@@ -151,11 +152,9 @@ func BenchmarkScannerEfficiency(b *testing.B) {
 		var matchCount int
 		for scanner.Scan() {
 			matchCount++
-			_ = scanner.Text()
+			_ = scanner.Bytes()
 		}
 
-		// This allows you to see the "Efficiency Ratio"
-		// (Calls to Splitter per Matches Found)
 		if i == 0 {
 			b.Logf("Matches: %d, Splitter Invocations: %d (%.2f calls/match)",
 				matchCount, callCount, float64(callCount)/float64(matchCount))
@@ -173,6 +172,45 @@ func BenchmarkScannerThroughput(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		scanner := rs.MakeScanner(strings.NewReader(content), re)
+		for scanner.Scan() {
+			_ = scanner.Bytes()
+		}
+	}
+}
+
+func BenchmarkPrimitiveThroughput(b *testing.B) {
+	content := []byte(strings.Repeat("a", 1024*1024)) // 1MB of 'a's
+	pattern := []byte("a")
+
+	b.ResetTimer()
+	b.ReportAllocs()
+	b.SetBytes(int64(len(content)))
+
+	for i := 0; i < b.N; i++ {
+		scanner := bufio.NewScanner(bytes.NewReader(content))
+		// Primitive split function using bytes.Index and greedy matching
+		scanner.Split(func(data []byte, atEOF bool) (advance int, token []byte, err error) {
+			if atEOF && len(data) == 0 {
+				return 0, nil, nil
+			}
+			start := bytes.Index(data, pattern)
+			if start >= 0 {
+				// Greedy match: find where the 'a's end
+				end := start + 1
+				for end < len(data) && data[end] == 'a' {
+					end++
+				}
+				// If we hit the end of the buffer and more is coming, request more
+				if !atEOF && end == len(data) {
+					return start, nil, nil
+				}
+				return end, data[start:end], nil
+			}
+			if !atEOF {
+				return 0, nil, nil
+			}
+			return len(data), nil, nil
+		})
 		for scanner.Scan() {
 			_ = scanner.Bytes()
 		}
